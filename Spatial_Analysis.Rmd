@@ -1,0 +1,230 @@
+---
+title: "Introduction to Spatial Analysis"
+author: "Josh Havstad"
+date: "2024-03-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Using Spatial Analysis to Analyze Shot Selection in Basketball
+
+### Overview
+
+This R Markdown file will cover spatial analysis. Spatial data sets can be found and applied in many disciplines, including earth sciences, cartography, biology, ecology, sociology, and more. Its applications can lead to impactful and meaningful changees in many public policies or social issues. In this lesson, we will investigate how spatial analysis can be applied to basketball data. Analyzing shot selection of players based on location can help coaches create effective game plans to increase the success of their players and limit the success of opposing players.
+
+#### What is spatial data?
+
+Spatial data is data collected at locations defined by spatial coordinates. There are three main types of spatial data:
+
+1.  **Geostatistical** – This data is collected at fixed, geographically referenced locations. Geostatistical analysis deals with studying the spatial patterns, correlations, and variability of data from different locations or regions. Some techniques involved in this analysis include kriging, spatial autocorrelation analysis, and spatial interpolation. The main purposes or goals of working with geostatistical analysis include predicting future events, mapping, assessing risks, and monitoring environments.
+
+2.  **Areal** - This data is collected by predefined areas or zones (Ex: zip codes, counties, states). A few techniques which are used with areal data are cluster analysis, spatial ponit pattern analysis, hotspot analysis, or spatial data visualization. Areal analysis is meant to describe attributes or characteristics of entire areas. Some applications of this could be in demographic studies, public health studies, urban planning, market analysis, or socioeconomic research. This can assist with resource allocation or strategic planning in specific regions.
+
+3.  **Point pattern** - This data usually represents events as points in 2D space (Ex: (x,y) coordinates) and can represent occurrences of earthquakes, wildfires, disease cases, animal sightings, etc. Some main techniques associated with this data are spatial point pattern analysis, kernal density estimation, point pattern simulation, or cluster analysis. Point pattern data analysis can be used to explore patterns or trends in the locations of events.
+
+In this example, we will be dealing with point pattern data, as the location of each basketball shot will be represented by (x,y) coordinates which represent different spots on the basketball court.
+
+## The Data
+
+```{r, include = F}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(BasketballAnalyzeR)
+```
+
+We will be looking at data for each shot attempt in the 2022-2023 NBA season. This data can be found at the GitHub profile for *DomSamangy.*
+
+Here is the link to the data: <https://github.com/DomSamangy/NBA_Shots_04_23/blob/main/NBA_2023_Shots.csv.zip>
+
+```{r}
+# import the data set and assign it a name
+shots23 <- read.csv("~/Downloads/NBA_2023_Shots.csv")
+# look at first 6 rows of the dataset
+head(shots23)
+```
+
+```{r}
+# look at structure of data, variable types, and examples of variable values
+str(shots23)
+```
+
+Taking a quick look at our data set, which has been named *shots23,* we can see that each observation (row) represents an individual shot attempt taken by a player during the 2022-2023 season, regardless of the outcome (make or miss). Some important variables that may be of interest include the player name, team names, player position, shot type, location of shot, and shot distance.
+
+### Discussion
+
+Working with a partner, what are some research questions or statistics you think a sports organization, coach, player, sports media outlet, etc. would be interested in answering or finding? For the purposes of this lesson, focus on ideas revolving around shot location.
+
+### Exploratory Data Analysis
+
+Exploratory data analysis and visualizing data should become a habit everytime we work with new data. In this section, we will quickly investigate some individual variables or relationships between variables that you may have discussed with your partner.
+
+#### Shot Success by Shot Distance
+
+Below, we can see the distribution of shot distances for both makes and misses. An NBA court is **94 feet in length by 50 feet in width**. The histograms below are cutoff at 47 feet, which may eliminate some shot attempts that occurred past half-court, but these are rare and usually occur at the end of quarters.
+
+```{r, warning = F}
+ggplot(shots23) + 
+  geom_histogram(mapping = aes(x = SHOT_DISTANCE, fill = SHOT_MADE), bins = 47) + 
+  facet_wrap(~SHOT_MADE) +
+  xlab("Shot Distance (feet)") +
+  ylab("Count") +
+  theme_bw() +
+  xlim(0,47)
+```
+
+From the histograms above, there seems to be a trend to the distances with which shots are taken. Most attempts (make or miss) occur either within 5 feet or between around 22 to 27 feet. These distances represent layups/dunks and 3 point attempts. However, we can see that layups/dunks seem to be made more often than missed, whereas 3 point attempts are missed more often than made.
+
+```{r}
+# t-test for comparison of means
+t.test(SHOT_DISTANCE ~ SHOT_MADE, data=shots23)
+```
+
+From the t-test output, we can see that there is a significant difference in the average distance of a made shot versus the average distance of a missed shot. Made shots tend to be around 11 feet in distance whereas missed shots are closer to 16 feet in distance from the basket.
+
+#### Shot Type by Position
+
+Next, we can look at how different positions vary in the shot attempts they take. We can look at the ZONE_RANGE variable, which sections the distances of shots into 5 categories, representing short-range shots, mid-range shots, long 2 pointers/short 3 pointers, 3 point shots, and back court shots. We can remove back court shots, as those are beyond half-court and are not shots being taken in a normal offense.
+
+```{r}
+# remove back court shots (shots past half-court)
+shots23_zones <- shots23 %>% 
+  filter(ZONE_RANGE != "Back Court Shot")
+# create table showing the proportion of shots for each position by zone
+prop.table(table(shots23_zones$POSITION, shots23_zones$ZONE_RANGE), margin = 1) %>% 
+  round(digits=2)
+```
+
+The previous table indicates that shot distances tend to vary by position. For example, a majority of centers' shot attempts are coming from less than 8 feet (65% of total shots). On the other hand, only 34% of point guards' shot attempts are coming from less than 8 feet, and 42% of their shots are coming from 24+ feet (3 pointers). The PF-SF position appears to have the most diverse shot selection, as it is the only position with over 10% of attempts from each of the 4 distances and over 20% of attempts from 8-16 feet (mid-range).
+
+```{r}
+# Chi-square test for association between position and shot distance zone
+chisq.test(table(shots23_zones$POSITION, shots23_zones$ZONE_RANGE))
+```
+
+Looking at a chi-square test, which tests for the association between categorical variables, we can see that there is strong evidence of an association between the two variables. This tells us that certain positions tend to take shots from specific distance ranges more frequently than others.
+
+#### Distribution of Shots Using Coordinates
+
+Using the X or Y coordinate variables, we can see how shots are distributed either width-wise or length-wise on the court. We will introduce methods for properly displaying the (x,y) coordinates together later on in the lesson. Here, let's take a look at how shots are distributed from right to left on a basketball court.
+
+As mentioned previously, a basketball court is 50 feet in width and 94 feet in length. In our data set, the values from -25 to 0 represent the right half of the court, while 0 to 25 represent the left half of the court. 0 represents the center of the court width-wise.
+
+```{r}
+ggplot(shots23) +
+  geom_histogram(mapping = aes(x = LOC_X), fill = "Dark Orange", bins = 50) +
+  xlab("Shot Location (Right to Left)") +
+  ylab("Count") +
+  theme_bw()
+
+```
+
+As expected, the shot distribution for players is essentially symmetrical, with a majority of the shots coming in the middle of the court and spikes towards the edges (most likely from corner 3 point attempts). If shot attempts were not spread out and occurred more in one half of the court than the other, teams would be predictable and easier to defend.
+
+#### Activity
+
+Before we move on to specific methods related to spatial analysis, work with your partner to explore the data further. Create at least one visualization using ggplot and write a couple sentences describing some takeaways from the visual. Additionally, compare another set of variables and find if there is a significant correlation or association between them.
+
+## Spatial Analysis
+
+As mentioned previously, the "spatial" part of our data is represented as x and y coordinates from the variables *LOC_X* and *LOC_Y*, which are both measured in feet*.* Once again, a basketball court is **50 feet in width by 94 feet in length.**
+
+*LOC_X* ranges from -25 (most right area of court) to 25 (most left area of court). 0 would be the middle section of the court.
+
+*LOC_Y* ranges from 0 (closest to basket) to 87.25 (furthest from basket). 47 would represent a shot from half-court.
+
+### Visuals
+
+A major benefit of working with spatial analysis are the many visualization methods available to us. We will cover some of the more popular techniques here, and I will provide some resources later on in the file if you wish to explore spatial visualizations further on your own time.
+
+#### Spray Charts (Shot Charts)
+
+A spray chart is one of the most basic ways to visualize data in sports. This is commonly used in both baseball and basketball to visualize the outcomes of events such as hits, shots, or passes.
+
+Let's say we want to make a spray chart for the shots attempted by the NBA champion Denver Nuggets during the 2022-2023 season.
+
+```{r, warning = F}
+ggplot(data = DEN) +
+  geom_point(data = DEN, aes(x = LOC_X, y = LOC_Y), alpha = 0.5, size = 0.25, color = "blue") +
+  geom_point(x = 0, y = 4, color = "red", size = 4, shape = 1, fill = "transparent") +
+  xlab("Right to Left") +
+  ylab("Close to Far") +
+  ggtitle("Denver Nuggets' Shot Attempts") +
+  xlim(-25, 25) +
+  ylim(0, 47) +
+  theme_bw()
+```
+
+As we can see from the chart above, a spray chart in basketball can show us the occurrences of events (in this case, each event is a shot attempt). We can improve our visuals with the *shotchart()* function, which can be found in the **BasketballAnalyzeR** package, to improve our spray charts. This package allows us to visualize shots in different ways on a graph that includes the lines of a basketball court. There are many packages and functions that can accomplish similar things for basketball and other sports as well.
+
+Let's take a look at Finals MVP Nikola Jokic's shot attempts for the 2022-2023 season. Often, analysis using shot attempts may want to look at makes versus misses.
+
+```{r}
+# have to first change the Y coordinate, as the center of the court is set at (0,0)
+JOK <- shots23 %>% filter(PLAYER_NAME == "Nikola Jokic")
+JOK$XX <- JOK$LOC_X
+JOK$YY <- JOK$LOC_Y-47 
+JOK$RESULT <- ifelse(JOK$SHOT_MADE == TRUE, "made", "missed") # create new variable for shot result
+JOK$RESULT <- as.factor(JOK$RESULT) # turn result variable into factor variable
+shotchart(data = JOK, x = 'XX', y = 'YY', z = "RESULT", pt.alpha = .5, palette = "hot", scatter = T)
+```
+
+This chart above shows us the shot attempts that Nikola Jokic made and missed throughout the season. It appears that he is an especially accurate shooter from the right side of the court (right of the basket, not right side of plot), especially in the mid-range area. We also see that his shot selection is fairly diverse as opposed to most centers in the NBA, as he is able to shoot from many distances on the court. However, it seems like he may struggle from the left side which could be the reason behind why there are not many attempts from that side.
+
+#### Heatmaps
+
+Another way of visualizing spatial data could be to look at the density of values. Plots which use color intensity to reflect the density in certain areas are often referred to as *heatmaps*. In our data, we can see the density of Nikola Jokic's shot attempts by location on the basketball court.
+
+```{r}
+shotchart(data = JOK, x = "XX", y = "YY", type = "density-hexbin", nbins = 25, legend = T)
+```
+
+In this density-hexbin plot, we can see that the red hexagons have the most density, indicating the most shot attempts from that area, whereas the light blue hexagons indicate the least density or least shot attempts from that area. As expected, Nikola Jokic tends to take the most attempts near the basket. This plot shows that Jokic also frequently takes top-of-the-key 3 point attempts, which are the yeellow hexagons in the center of the x-axis above the three point line.
+
+#### Choropleth Maps
+
+Choropleth maps are versions of shot charts which are used in many sports (Basketball, Soccer, Hockey, etc.). Choropleth maps divide the playing field into regions with a common goal of visualizing spatial patterns such as number of attempts or player/team efficiency.
+
+Using a choropleth map, we can look at how efficient Nikola Jokic is by each area of the court.
+
+```{r}
+shotchart(data = JOK, x = "XX", y = "YY", num.sect = 5, type = "sectors", z = "SHOT_DISTANCE", result = "RESULT", palette = "mixed")
+```
+
+We see that Jokic is the most successful closest to the basket, shooting 74% with 455 attempts. He finds similar success around the right wing area just under the three point line, shooting 73% but only on 11 attempts. He is very effective in the areas just around the basket except for the close left side. He is only shooting 17% on 12 attempts whereas in the other four sections around the basket, he is shooting at least 59% with high volume.
+
+#### Advanced Visualization Methods
+
+We have covered some of the more common and fundamental visualization methods associated with spatial analysis in sports data, but there are plenty of other advanced methods that could be used as well, including:
+
+-   Trajectory Plots
+
+-   Voronoi Diagrams
+
+-   Spatial Interpolation
+
+-   Player Tracking Visualizations
+
+-   Passing Networks
+
+spatial density maps (kernel density estimation)
+
+voronoi diagrams
+
+some form of spatial autocorrelation?
+
+spatial clustering analysis
+
+spatial regression analysis
+
+spatial point pattern analysis (ripley's k function)
+
+network analysis
+
+spatial aggregation (aggregate shot data for each player to calculate success rates, use binning or grid-based aggregation to discretize shot locations into cells)
+
+statistical analysis such as spatial regression models or generalized linear mixed models to assess impact of shot location on shot outcomes while accounting for spatial autocorrelation and player variability
