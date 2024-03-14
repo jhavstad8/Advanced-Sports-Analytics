@@ -17,7 +17,7 @@ This R Markdown file will cover spatial analysis. Spatial data sets can be found
 
 #### What is spatial data?
 
-Spatial data is data collected at locations defined by spatial coordinates. There are three main types of spatial data:
+Spatial data is data collected at locations defined by spatial coordinates. It is often referred to as "geospatial" data due to its primary use being with information on physical locations and events on earth. There are generally three main types of spatial data, including:
 
 1.  **Geostatistical** – This data is collected at fixed, geographically referenced locations. Geostatistical analysis deals with studying the spatial patterns, correlations, and variability of data from different locations or regions. Some techniques involved in this analysis include kriging, spatial autocorrelation analysis, and spatial interpolation. The main purposes or goals of working with geostatistical analysis include predicting future events, mapping, assessing risks, and monitoring environments.
 
@@ -129,13 +129,13 @@ As expected, the shot distribution for players is essentially symmetrical, with 
 
 Before we move on to specific methods related to spatial analysis, work with your partner to explore the data further. Create at least one visualization using ggplot and write a couple sentences describing some takeaways from the visual. Additionally, compare another set of variables and find if there is a significant correlation or association between them.
 
-## Spatial Analysis
+## Spatial Data Visualization
 
 As mentioned previously, the "spatial" part of our data is represented as x and y coordinates from the variables *LOC_X* and *LOC_Y*, which are both measured in feet*.* Once again, a basketball court is **50 feet in width by 94 feet in length.**
 
-*LOC_X* ranges from -25 (most right area of court) to 25 (most left area of court). 0 would be the middle section of the court.
+*LOC_X* ranges from -25 (right sideline) to 25 (left sideline). 0 would be the middle section of the court.
 
-*LOC_Y* ranges from 0 (closest to basket) to 87.25 (furthest from basket). 47 would represent a shot from half-court.
+*LOC_Y* ranges from 0 (baseline) to 87.25 (endline). 47 would represent a shot from half-court.
 
 ### Visuals
 
@@ -183,7 +183,7 @@ Another way of visualizing spatial data could be to look at the density of value
 shotchart(data = JOK, x = "XX", y = "YY", type = "density-hexbin", nbins = 25, legend = T)
 ```
 
-In this density-hexbin plot, we can see that the red hexagons have the most density, indicating the most shot attempts from that area, whereas the light blue hexagons indicate the least density or least shot attempts from that area. As expected, Nikola Jokic tends to take the most attempts near the basket. This plot shows that Jokic also frequently takes top-of-the-key 3 point attempts, which are the yeellow hexagons in the center of the x-axis above the three point line.
+In this hexagonal heatmap, we can see that the red hexagons have the most density, indicating the most shot attempts from that area, whereas the light blue hexagons indicate the least density or least shot attempts from that area. As expected, Nikola Jokic tends to take the most attempts near the basket. This plot shows that Jokic also frequently takes top-of-the-key 3 point attempts, which are the yeellow hexagons in the center of the x-axis above the three point line.
 
 #### Choropleth Maps
 
@@ -210,6 +210,12 @@ We have covered some of the more common and fundamental visualization methods as
 -   Player Tracking Visualizations
 
 -   Passing Networks
+
+To introduce a couple of these advanced methods, we will look at how to create a Voronoi Diagram as well as Spatial Interpolation plot.
+
+### Voronoi Diagram
+
+## Spatial Data Analysis
 
 spatial density maps (kernel density estimation)
 
