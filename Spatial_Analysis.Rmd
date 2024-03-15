@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Overview
 
-This R Markdown file will cover spatial analysis. Spatial data sets can be found and applied in many disciplines, including earth sciences, cartography, biology, ecology, sociology, and more. Its applications can lead to impactful and meaningful changees in many public policies or social issues. In this lesson, we will investigate how spatial analysis can be applied to basketball data. Analyzing shot selection of players based on location can help coaches create effective game plans to increase the success of their players and limit the success of opposing players.
+This R Markdown file will cover spatial analysis. Spatial data sets can be found and applied in many disciplines, including earth sciences, cartography, biology, ecology, sociology, and more. Its applications can lead to impactful and meaningful changes in many public policies or social issues. Whether it is the position of players on a field or a court, the section and seat number of fans in the audience, travel routes for teams, or the location of TV viewers, spatial data can be found all across the sports world to benefit the team, the organization, and the fans. In this lesson, we will investigate how spatial analysis can be applied to basketball data. Analyzing shot selection of players based on location can help coaches create effective game plans to increase the success of their players and limit the success of opposing players.
 
 #### What is spatial data?
 
@@ -197,7 +197,7 @@ shotchart(data = JOK, x = "XX", y = "YY", num.sect = 5, type = "sectors", z = "S
 
 We see that Jokic is the most successful closest to the basket, shooting 74% with 455 attempts. He finds similar success around the right wing area just under the three point line, shooting 73% but only on 11 attempts. He is very effective in the areas just around the basket except for the close left side. He is only shooting 17% on 12 attempts whereas in the other four sections around the basket, he is shooting at least 59% with high volume.
 
-#### Advanced Visualization Methods
+### Advanced Visualization Methods
 
 We have covered some of the more common and fundamental visualization methods associated with spatial analysis in sports data, but there are plenty of other advanced methods that could be used as well, including:
 
@@ -205,32 +205,119 @@ We have covered some of the more common and fundamental visualization methods as
 
 -   Voronoi Diagrams
 
--   Spatial Interpolation
+-   Spatial Interpolation Plot
 
 -   Player Tracking Visualizations
 
 -   Passing Networks
 
-To introduce a couple of these advanced methods, we will look at how to create a Voronoi Diagram as well as Spatial Interpolation plot.
+To introduce one of these advanced methods, we will look at how to create a Voronoi Diagram.
 
-### Voronoi Diagram
+#### Voronoi Diagram
 
-## Spatial Data Analysis
+This diagram is named after Russian mathematician Georgy Voronoi, who defined the general n-dimensional case in 1908.
 
-spatial density maps (kernel density estimation)
+A Voronoi Diagram is made by plotting points on a Euclidean plane. This plane is then divided and covered by tessellating polygons. This means that the polygons cover the entire plane without any overlaps or gaps. These polygons can also be referred to as cells. There is one polygon around each point, and it takes up the area of the plane closer to that point than any other point. Voronoi tessellations are created by radial outward growth from the points.
 
-voronoi diagrams
+Here are a few examples in different dimensions:
 
-some form of spatial autocorrelation?
+![](images/Screen Shot 2024-03-14 at 8.09.39 PM.png){width="553"}
 
-spatial clustering analysis
+This is an interesting article about Voronoi Diagrams with some more examples: <https://www.kdnuggets.com/2022/11/quick-overview-voronoi-diagrams.html>
 
-spatial regression analysis
+With our data, we can use Voronoi Diagrams to see how different players have different shooting tendencies or preferences in regards to their position on the court.
 
-spatial point pattern analysis (ripley's k function)
+Let's take a look at LeBron James vs. Kevin Durant.
 
-network analysis
+First, let's cluster their shot attempts so that there are not too many points or polygons . We can use a k-means clustering technique to do this. Too many polygons would make the diagram very cluttered and hard to read/understand.
 
-spatial aggregation (aggregate shot data for each player to calculate success rates, use binning or grid-based aggregation to discretize shot locations into cells)
+```{r}
+# Load required libraries
+library(ggplot2)
+library(spatstat)
+library(sf)
 
-statistical analysis such as spatial regression models or generalized linear mixed models to assess impact of shot location on shot outcomes while accounting for spatial autocorrelation and player variability
+# Filter data set for the players' shooting data
+LBJ <- shots23 %>% filter(PLAYER_NAME == "LeBron James")
+KD <- shots23 %>% filter(PLAYER_NAME == "Kevin Durant")
+
+# Perform k-means clustering with 8 clusters (# of clusters could be anything)
+kLBJ <- kmeans(cbind(LBJ$LOC_X, LBJ$LOC_Y), centers = 8) 
+kKD <- kmeans(cbind(KD$LOC_X, KD$LOC_Y), centers = 8) 
+LBJ$cluster <- kLBJ$cluster
+KD$cluster <- kKD$cluster
+
+# Find Centers
+cLBJ <- data.frame(cbind(kLBJ$centers[,1], kLBJ$centers[,2]))
+cKD <-data.frame(cbind(kKD$centers[,1], kKD$centers[,2]))
+
+# Create Voronoi Diagram using spatstat package
+LBJppp <- ppp(x = cLBJ$X1, y = cLBJ$X2, xrange = c(-25, 25), yrange = c(0, 47))
+KDppp <- ppp(x = cKD$X1, y = cKD$X2, xrange = c(-25, 25), yrange = c(0, 47))
+
+vLBJ <- dirichlet(LBJppp) 
+vKD <- dirichlet(KDppp)
+
+# Overlay Voronoi diagram on scatterplot
+par(mfrow = c(1,2), cex.main = .75)
+
+plot(vLBJ, main = "Voronoi Diagram of LeBron James' Shot Attempts")
+points(LBJ$LOC_X, LBJ$LOC_Y, col = rgb(0, 0, 1, alpha = .5), pch = 16, cex = .25)
+points(0, 4, col = "red", pch = 1, cex = 2)
+
+plot(vKD, main = "Voronoi Diagram of Kevin Durant's Shot Attempts")
+points(KD$LOC_X, KD$LOC_Y, col = rgb(0, 0, 1, alpha = .5), pch = 16, cex = .25)
+points(0, 4, col = "red", pch = 1, cex = 2)
+```
+
+From the Voronoi diagrams, we can see ways that James and Durant differ in their shot selections. James' diagram indicates that he tends to take a lot of close shots on either side of the basket while having a lot of shot location diversity in his longer-range attempts. Durant's diagram indicates that he has a similar long-range shooting preferences, as they both have 5 polygons on the outside which are fairly similar in size and shape. However, Durant has two polygons in the mid-range area and only one around the basket. This shows that he prefers to take more mid-range shots than James does.
+
+#### Activity
+
+Using one of the visualization methods we have just covered, compare two different players' shooting ability or preference based on location. Discuss with your partner what your graphs tell you about the players and how this information could be used strategically.
+
+## Spatial Analysis
+
+### What is spatial analysis?
+
+Spatial analysis, or spatial statistics, is the proceses of using analytic techniques to find and understand relationships, patterns, and processes with spatial data. This can involve exploring, visualizing, modeling, and interpreting spatially referenced data. We can be interested in both quantitative and qualitative data in spatial analysis.
+
+Quantitative data in our example data could include shot accuracy, shot distance, or scoring efficiency (points per shot). Here are some spatial analysis methods associated with quantitative data:
+
+-   Spatial Autocorrelation
+
+-   Spatial Interpolation
+
+-   Regression Analysis
+
+-   Spatial Clustering
+
+Qualitative data in our example data could include shot type, shot zone, action of the shot, shot outcome, position/location of the player, etc. Here are some spatial analysis methods associated with qualitative data:
+
+-   Spatial Overlay
+
+-   Spatial Join
+
+-   Spatial Pattern Analysis
+
+## Resources
+
+<https://www.tandfonline.com/doi/full/10.1080/10691898.2020.1844104>
+
+This article explains what spatial data is and gives examples on how it could be used. The examples are non-sports related. There is also extra resources including R code that is listed.
+
+<https://www.geographyrealm.com/game-analysis-gis-football-soccer/>
+
+This is a short article which explains how spatial data is used in soccer and what implications the analysis can have. There are some links at the bottom to in-depth, peer-reviewed articles about analysis with soccer data.
+
+<https://grantland.com/features/kirk-goldsberry-introduces-new-way-understand-nba-best-scorers/>
+
+This article relates to this lesson plan, as it dives into assessing basketball players based on shots from different locations. The author offers insight into what the data can and can't tell us about different players.
+
+<https://www.sportperformanceanalysis.com/article/how-the-nfl-developed-expected-rushing-yards-with-the-big-data-bowl>
+
+This article details approaches to spatial data used in the NFL's Big Data Bowl. The spatial data was used to assess "yards over expectation" which is a popular metric now used in the NFL.
+
+<http://www.lukebornn.com/papers/cervone_ssac_2016.pdf>
+
+This article from the MIT Sloan Sports Analytics Conference shows how spatial data in basketball and Voronoi diagrams can be used to give insights into valuable areas of the court and the effectiveness of defenders.
