@@ -221,7 +221,7 @@ A Voronoi Diagram is made by plotting points on a Euclidean plane. This plane is
 
 Here are a few examples in different dimensions:
 
-![](images/Screen Shot 2024-03-14 at 8.09.39 PM.png){width="553"}
+![](images/Screen%20Shot%202024-03-14%20at%208.09.39%20PM.png){width="553"}
 
 This is an interesting article about Voronoi Diagrams with some more examples: <https://www.kdnuggets.com/2022/11/quick-overview-voronoi-diagrams.html>
 
@@ -300,6 +300,32 @@ Qualitative data in our example data could include shot type, shot zone, action 
 
 -   Spatial Pattern Analysis
 
+### Quantitative Spatial Analysis
+
+In this section, we will cover a couple of spatial analysis methods focusing on quantitative data.
+
+#### Spatial Autocorrelation
+
+To understand spatial autocorrelation, let's first dive into what autocorrelation is. We know that correlation measures the degree to which separate variables are linearly related. **Autocorrelation** refers to the amount of correlation between values of the same variables across different observations in a data set.
+
+This is very popular in *time series data*. An example of this could be average temperature measured at different months of the year. We would expect the average temperature of back-to-back months such as December and January to be more similar than the average temperature of months that are far apart such as December and June. The *Durbin-Watson* test is a popular method for testing this autocorrelation.
+
+**Autocorrelation can cause problems in conventional analyses and statistical methods where independence of observations is assumed.**
+
+**Spatial Autocorrelation** describes the degree to which observations or values at spatial locations are similar to each other.
+
+![](images/Screen%20Shot%202024-03-15%20at%201.48.23%20PM.png)
+
+This image shows examples of spatial autocorrelation. It was found at this website: <https://www.paulamoraga.com/book-spatial/spatial-autocorrelation.html> which can tell you more about spatial autocorrelation.
+
+The most popular method for testing for spatial autocorrelation is **Moran's I**.
+
+*Moran's I* measures spatial autocorrelation by finding the degree of similarity between neighboring observations. This degree of similarity ranges from -1 to 1, with -1 being fully dispersed and 1 being fully clustered. Fully dispersed means that observations with dissimilar values are closer together and fully clustered means that observations with similar values are closer together.
+
+**Important Formulas**
+
+-   
+
 ## Resources
 
 <https://www.tandfonline.com/doi/full/10.1080/10691898.2020.1844104>
@@ -321,3 +347,17 @@ This article details approaches to spatial data used in the NFL's Big Data Bowl.
 <http://www.lukebornn.com/papers/cervone_ssac_2016.pdf>
 
 This article from the MIT Sloan Sports Analytics Conference shows how spatial data in basketball and Voronoi diagrams can be used to give insights into valuable areas of the court and the effectiveness of defenders.
+
+idea
+
+regression analysis based on angle of shot
+
+try to find success of shot based on angle
+
+could do regression for points per shot based on distance
+
+maybe logistic regression based on shot zone
+
+shot location and shot action?
+
+or shot action and shot angle?
