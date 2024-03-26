@@ -148,6 +148,8 @@ A spray chart is one of the most basic ways to visualize data in sports. This is
 Let's say we want to make a spray chart for the shots attempted by the NBA champion Denver Nuggets during the 2022-2023 season.
 
 ```{r, warning = F}
+DEN <- shots23 %>% filter(TEAM_NAME == "Denver Nuggets")
+  
 ggplot(data = DEN) +
   geom_point(data = DEN, aes(x = LOC_X, y = LOC_Y), alpha = 0.5, size = 0.25, color = "blue") +
   geom_point(x = 0, y = 4, color = "red", size = 4, shape = 1, fill = "transparent") +
@@ -231,12 +233,14 @@ Let's take a look at LeBron James vs. Kevin Durant.
 
 First, let's cluster their shot attempts so that there are not too many points or polygons . We can use a k-means clustering technique to do this. Too many polygons would make the diagram very cluttered and hard to read/understand.
 
-```{r}
+```{r, include = F}
 # Load required libraries
 library(ggplot2)
 library(spatstat)
 library(sf)
+```
 
+```{r}
 # Filter data set for the players' shooting data
 LBJ <- shots23 %>% filter(PLAYER_NAME == "LeBron James")
 KD <- shots23 %>% filter(PLAYER_NAME == "Kevin Durant")
@@ -316,17 +320,140 @@ This is very popular in *time series data*. An example of this could be average 
 
 ![](images/Screen%20Shot%202024-03-15%20at%201.48.23%20PM.png)
 
-This image shows examples of spatial autocorrelation. It was found at this website: <https://www.paulamoraga.com/book-spatial/spatial-autocorrelation.html> which can tell you more about spatial autocorrelation.
+This image shows examples of spatial autocorrelation. It was found at this website: <https://www.paulamoraga.com/book-spatial/spatial-autocorrelation.html> which can tell you more about spatial autocorrelation and other methods of spatial statistics. Much of the information here will come from that link.
 
 The most popular method for testing for spatial autocorrelation is **Moran's I**.
 
-*Moran's I* measures spatial autocorrelation by finding the degree of similarity between neighboring observations. This degree of similarity ranges from -1 to 1, with -1 being fully dispersed and 1 being fully clustered. Fully dispersed means that observations with dissimilar values are closer together and fully clustered means that observations with similar values are closer together.
+*Moran's I* measures spatial autocorrelation by finding the degree of similarity between neighboring observations or regions. This degree of similarity ranges from -1 to 1, with -1 being fully dispersed and 1 being fully clustered. Fully dispersed means that observations with dissimilar values are closer together and fully clustered means that observations with similar values are closer together.
 
 **Important Formulas**
 
--   
+-   ![](images/Screen Shot 2024-03-24 at 10.01.02 PM.png){width="212" height="58"}
 
-## Resources
+-   ![](images/Screen Shot 2024-03-24 at 10.02.27 PM.png){width="94"}
+
+-   ![](images/Screen Shot 2024-03-24 at 10.02.37 PM.png){width="255"}
+
+-   ![](images/Screen Shot 2024-03-24 at 10.02.48 PM.png){width="440"}
+
+-   n represents the number of regions, Y~i~ represents the observed value of the variable of interest in region i, $\bar{Y}$ is the mean of all values, and w~ij~ are spatial weights that denote the spatial proximity between regions i and j
+
+When testing for spatial autocorrelation using Moran's I, the null hypothesis assumes that there is no spatial autocorrelation, the observations Y~i~ are i.i.d., and I is asymptotically normally distributed with the mean and variance functions listed above. When the number of regions is sufficiently large, I has a normal distribution, and we can use this fact to calculate the test statistic:
+
+![](images/Screen Shot 2024-03-24 at 10.19.31 PM.png){width="97"}
+
+-   Moran's I values significantly **above** E[I] indicate positive spatial autocorrelation
+
+-   Moran's I values significantly **below** E[I] indicate negative spatial autocorrelation
+
+-   Moran's I **around** E[I] indicate randomness
+
+Below, we can calculate Moran's I using code.
+
+```{r, include = F}
+# Step 1: Load required libraries
+library(spdep) # For spatial analysis
+library(sp)    # For spatial data handling
+```
+
+```{r}
+
+# Step 2: Define spatial weights
+# Example using k-nearest neighbors (adjust k as needed)
+coords <- cbind(LBJ$LOC_X, LBJ$LOC_Y)
+# Assuming your data is in a projected coordinate system
+nb <- knn2nb(knearneigh(coords, k = 8))
+W <- nb2listw(nb, style = "W")
+
+# Step 3: Calculate Moran's I for shot outcome
+# Assuming 'shot_outcome' is a binary variable (0 for miss, 1 for made)
+moransI <- moran.test(as.numeric(LBJ$SHOT_MADE), listw = W)
+print(moransI)
+
+```
+
+From the output above, we see that the p-value is extremely small, giving us strong evidence against the null hypothesis and evidence of positive spatial autocorrelation. This tells us that there is a non-random spatial pattern in the shot success for LeBron James. He will tend to be more successful from certain areas of the court as opposed to other areas. This is an expected outcome, as he is more efficient closer to the basket.
+
+#### Spatial Regression Analysis
+
+This is very similar to traditional regression models and methods, however, spatial regression analysis is used to account for spatial autocorrelation, spatial heterogeneity, and other spatial structures which could be present in data.
+
+Spatial regression analysis can be used to capture spatial relationships, offer an improved model fit compared to traditional methods, and provide insights into important variables that can be used to predict outcomes for specific spatial regions or areas.
+
+**Spatial Lag Model** (This information can be found at <https://lost-stats.github.io/Geo-Spatial/spatial_lag_model.html>)
+
+To account for spatial autocorrelation, we can use a *Spatial Lag Model*, in which
+
+a dependent variable is predicted using the value of the dependent variable's neighbors.
+
+![](images/Screen Shot 2024-03-25 at 1.13.04 PM.png){width="219"}
+
+-   Y~j~ denotes the set of Y values from observations other than Y~i~
+
+-   W is a matrix of spatial weights which are larger for observations j closer to i
+
+There are methods for finding the neighbors for each observation, such as *K-nearest neighbors*.
+
+Let's look again at the **LBJ** data set, which we saw from the previous section had strong evidence of spatial autocorrelation regarding shot success. We will run a spatial lag model predicting the shot outcome from the shot zone and the shot distance.
+
+```{r, include = F}
+# if necessary
+# install.packages(c('spatialreg', 'spdep'))
+
+# Library for calculating neighbors
+library(spdep)
+# And for the spatial lag model
+library(spatialreg)
+```
+
+```{r, warning = F}
+# We can use same code as before to get the nearest neighbors and define the spatial weights
+coords <- cbind(LBJ$LOC_X, LBJ$LOC_Y)
+nb <- knn2nb(knearneigh(coords, k = 10))
+W <- nb2listw(nb, style = "W")
+
+# Spatial regression model
+srm <- lagsarlm(as.numeric(SHOT_MADE) ~ ZONE_NAME + SHOT_DISTANCE, data = LBJ, listw = W)
+summary(srm)
+```
+
+Two important results to note:
+
+1.  The LR test p-value of 6.0395e-05 indicates that there is significant spatial autocorrelation in the model.
+2.  The LM test p-value of .74 indicates that there is no strong evidence of residual spatial autocorrelation, meaning our spatial lag model captures the spatial autocorrelation in the data.
+
+```{r}
+# compare spatial lag model to normal linear model
+normal <- lm(as.numeric(SHOT_MADE) ~ ZONE_NAME + SHOT_DISTANCE, data = LBJ)
+anova(srm,normal)
+```
+
+From the output above, we can see that the anova test comparing the two models results in an extremely small p-value. This tells us that the spatial lag model fits the data much better than a normal linear model.
+
+Interpreting the coefficient estimates from our spatial lag model:
+
+-   Shot distance is significantly associated with the shot outcome (odds of making a shot). This is evident because of its extremely small p-value (2.066e-11).
+
+-   The intercept represents the baseline log odds of making a shot from the "Center" zone at a distance of 0 feet.
+
+-   We see that the "Left Side" zone has a p-value of .012, indicating that there is strong evidence that the log odds of making a shot from this zone is significantly different from the log odds of making a shot from the baseline "Center" zone.
+
+    ```{r}
+    # exponentiate Left Zone estimate
+    exp(-.138)
+    ```
+
+-   Because we are dealing with the log odds of making a shot (our response is a binary outcome, make or miss), we should exponentiate the coefficient estimate to interpret its value. After adjusting for shot distance, the odds of making a shot taken from the left side of the court are approximately .87 times the odds of making a shot taken from the center of the court.
+
+    #### Activity
+
+    Discuss with your partner how you would interpret the estimate for the *SHOT_DISTANCE* variable. Using this knowledge along with the output from the spatial lag model, talk about what this tells us about LeBron's shooting ability, and how can teams use this to their advantage?
+
+## Conclusion
+
+In this lesson, we have introduced spatial data in the context of basketball shots. We have covered what spatial data is, how it appears, and how it can be used. There are many visualization techniques associated with spatial data, and we covered a few of them including spray charts, heat maps, choropleth maps, and voronoi diagrams. In terms of spatial analysis, it is extremely important to consider spatial autocorrelation when working with spatial data. When spatial autocorrelation is prevalent, we need to adjust for it, as normal methods of modeling data will not be sufficient. This was shown in our implementation of the spatial lag model. This lesson only scratches the surface of the possible uses and techniques related to spatial data. I encourage you to check out some of the links listed below in the "Additional Resources" section, to see how spatial data can be visualized and analyzed.
+
+## Additional Resources
 
 <https://www.tandfonline.com/doi/full/10.1080/10691898.2020.1844104>
 
@@ -348,16 +475,6 @@ This article details approaches to spatial data used in the NFL's Big Data Bowl.
 
 This article from the MIT Sloan Sports Analytics Conference shows how spatial data in basketball and Voronoi diagrams can be used to give insights into valuable areas of the court and the effectiveness of defenders.
 
-idea
+<https://pages.cms.hu-berlin.de/EOL/gcg_quantitative-methods/Lab15_SpatialRegression.html#Spatial_lag_model>
 
-regression analysis based on angle of shot
-
-try to find success of shot based on angle
-
-could do regression for points per shot based on distance
-
-maybe logistic regression based on shot zone
-
-shot location and shot action?
-
-or shot action and shot angle?
+This online textbook further explains Moran's I test, spatial weights, spatial lag models, etc.
