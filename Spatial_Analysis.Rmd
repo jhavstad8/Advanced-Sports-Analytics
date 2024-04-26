@@ -328,19 +328,19 @@ The most popular method for testing for spatial autocorrelation is **Moran's I**
 
 **Important Formulas**
 
--   ![](images/Screen Shot 2024-03-24 at 10.01.02 PM.png){width="212" height="58"}
+-   ![](images/Screen%20Shot%202024-03-24%20at%2010.01.02%20PM.png){width="212" height="58"}
 
--   ![](images/Screen Shot 2024-03-24 at 10.02.27 PM.png){width="94"}
+-   ![](images/Screen%20Shot%202024-03-24%20at%2010.02.27%20PM.png){width="94"}
 
--   ![](images/Screen Shot 2024-03-24 at 10.02.37 PM.png){width="255"}
+-   ![](images/Screen%20Shot%202024-03-24%20at%2010.02.37%20PM.png){width="255"}
 
--   ![](images/Screen Shot 2024-03-24 at 10.02.48 PM.png){width="440"}
+-   ![](images/Screen%20Shot%202024-03-24%20at%2010.02.48%20PM.png){width="440"}
 
 -   n represents the number of regions, Y~i~ represents the observed value of the variable of interest in region i, $\bar{Y}$ is the mean of all values, and w~ij~ are spatial weights that denote the spatial proximity between regions i and j
 
 When testing for spatial autocorrelation using Moran's I, the null hypothesis assumes that there is no spatial autocorrelation, the observations Y~i~ are i.i.d., and I is asymptotically normally distributed with the mean and variance functions listed above. When the number of regions is sufficiently large, I has a normal distribution, and we can use this fact to calculate the test statistic:
 
-![](images/Screen Shot 2024-03-24 at 10.19.31 PM.png){width="97"}
+![](images/Screen%20Shot%202024-03-24%20at%2010.19.31%20PM.png){width="97"}
 
 -   Moran's I values significantly **above** E[I] indicate positive spatial autocorrelation
 
@@ -386,7 +386,7 @@ To account for spatial autocorrelation, we can use a *Spatial Lag Model*, in whi
 
 a dependent variable is predicted using the value of the dependent variable's neighbors.
 
-![](images/Screen Shot 2024-03-25 at 1.13.04 PM.png){width="219"}
+![](images/Screen%20Shot%202024-03-25%20at%201.13.04%20PM.png){width="219"}
 
 -   Y~j~ denotes the set of Y values from observations other than Y~i~
 
